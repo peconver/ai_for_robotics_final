@@ -6,6 +6,8 @@ from geometry_msgs.msg import Twist   # geometry_msgs/Twist.msg
 from tf.transformations import euler_from_quaternion
 from math import radians, pi, sqrt
 import numpy as np
+# import serial
+
 
 count = 0
 move = turn = 0.0
@@ -18,12 +20,18 @@ def get_odom(msg):                  # at ~ 30 Hz
     orientation_q = msg.pose.pose.orientation
     orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
     (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
-    print(orientation_list)
+    # print(orientation_list)
 
     x = msg.pose.pose.position.x
+    
     y = msg.pose.pose.position.y
     turn = msg.twist.twist.angular.z
-    data = np.copy((yaw, x, y, turn, msg.header.seq))
+    data = np.copy((x, y, yaw, turn, msg.header.seq))
+    print(x, y, yaw)
+    #save data to file
+    with open('data.csv', 'a') as f:
+        f.write(str(data[0]) + ' , ' + str(data[1]) + ' , ' + str(data[2])  + '\n')
+
     count = count +1
 
 def fixyaw(yaw, turn):    # if yaw is negative, add 2*pi ... if turn + = anti-clockwise
@@ -63,13 +71,13 @@ steps = 0
 while steps < 4:
     print("Going Straight")
     move_cmd.linear.x = 0.1  # start at .1 m/s ...
-    move_cmd.angular.z = 0.0;
+    move_cmd.angular.z = 0.0
     dist = 0.0
-    Dgoal = 0.2  # turn 90 degrees
+    Dgoal = 2  # turn 90 degrees
     decelD = 0.02  # distance to decelerate
     minD = 0.005
     maxD = 0.1
-    while dist <= Dgoal:  # move for 0.2 metres...
+    while dist <= Dgoal: # Dgoal:  # move for 0.2 metres...
         cmd_vel.publish(move_cmd)
         dist = sqrt((data[1] - Stepx)**2 + (data[2] - Stepy)**2)
         if dist > (Dgoal-decelD):    # start decelerating
@@ -78,7 +86,7 @@ while steps < 4:
                 speed = maxD
             if speed < minD:
                 speed = minD
-        if dist > 0.15:
+        if dist > 2:
             speed = 0.1*2.5*(0.2 - dist)/0.2
             if speed > 0.1:
                 speed = 0.1
@@ -102,11 +110,11 @@ while steps < 4:
     decelR = radians(15)  # distance to decelerate
     minR = radians(1)
     maxR = radians(90)
-    while rotate <= Rgoal:
+    while abs(rotate - Rgoal) < 0.1:  # rotate for 90 degree
         cmd_vel.publish(move_cmd)
         yaw = fixyaw(data[0], data[3])
         rotate = yaw - Stepyaw
-        if rotate > (Rgoal-decelR):    # start decelerating:
+        if rotate < abs(Rgoal-decelR):    # start decelerating:
             speed = 0.7*maxR*(Rgoal - rotate) / Rgoal  # e.g. ~ 10% of maxR or less
             if speed > maxR:
                 speed = maxR
