@@ -46,6 +46,8 @@ def fixyaw(yaw, turn):    # if yaw is negative, add 2*pi ... if turn + = anti-cl
     yaw = yaw + yawadd
     return yaw
 
+with open('data.csv', 'w') as f:
+    pass
 rospy.init_node('my_square')
 subodom = rospy.Subscriber('/odom', Odometry, get_odom, queue_size=1)    # nav_msgs/Odometry
 cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
