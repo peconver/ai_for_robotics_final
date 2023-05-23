@@ -6,6 +6,8 @@ from geometry_msgs.msg import Twist   # geometry_msgs/Twist.msg
 from tf.transformations import euler_from_quaternion
 from math import radians, pi, sqrt
 import numpy as np
+from sensor_msgs.msg import Imu
+
 # import serial
 
 
@@ -13,7 +15,11 @@ count = 0
 move = turn = 0.0
 yawadd = 0.0
 lastyaw = 1.0
-data = np.zeros(5)
+data = np.zeros(14)
+Lastseq = Oseq = 0
+imu = Imu()
+Cmove = Cturn = 0.0
+dataarray = np.zeros(22)
 
 def get_odom(msg):                  # at ~ 30 Hz
     global count, data
@@ -26,11 +32,15 @@ def get_odom(msg):                  # at ~ 30 Hz
     
     y = msg.pose.pose.position.y
     turn = msg.twist.twist.angular.z
-    data = np.copy((x, y, yaw, turn, msg.header.seq))
-    print(x, y, yaw)
+    data = np.copy((x, y, yaw, turn, imu.orientation.x, imu.orientation.y, imu.orientation.z, imu.orientation.w, imu.angular_velocity.x, imu.angular_velocity.y, imu.angular_velocity.z, imu.linear_acceleration.x, imu.linear_acceleration.y, imu.linear_acceleration.z))
+    #add imu
+    # data = np.append(data, (imu.orientation.x, imu.orientation.y, imu.orientation.z, imu.orientation.w, imu.angular_velocity.x, imu.angular_velocity.y, imu.angular_velocity.z, imu.linear_acceleration.x, imu.linear_acceleration.y, imu.linear_acceleration.z))
+
+
+    print(data)
     #save data to file
     with open('data.csv', 'a') as f:
-        f.write(str(data[0]) + ' , ' + str(data[1]) + ' , ' + str(data[2])  + '\n')
+        f.write(str(data[0]) + ' , ' + str(data[1]) + ' , ' + str(data[2]) + ' , ' + str(data[3]) + ' , ' + str(data[4]) + ' , ' + str(data[5]) + ' , ' + str(data[6]) + ' , ' + str(data[7]) + ' , ' + str(data[8]) + ' , ' + str(data[9]) + ' , ' + str(data[10]) + ' , ' + str(data[11]) + ' , ' + str(data[12]) + ' , ' + str(data[13]) + '\n')
 
     count = count +1
 
@@ -46,11 +56,41 @@ def fixyaw(yaw, turn):    # if yaw is negative, add 2*pi ... if turn + = anti-cl
     yaw = yaw + yawadd
     return yaw
 
+def imu_cb(msg):  # at ~ 190 Hz
+    global imu
+    imu = msg
+    # print(imu)
+# def collect():
+#     global Cmove, Cturn, imu, data, dataarray, Oseq
+
+#     imudata = np.array([1.0] * 10, np.float32)
+#     Lastseq = int(Oseq)
+#     now = rospy.get_rostime()
+#     imudata[0] = imu.orientation.x
+#     imudata[1] = imu.orientation.y
+#     imudata[2] = imu.orientation.z
+#     imudata[3] = imu.orientation.w
+#     imudata[4] = imu.linear_acceleration.x
+#     imudata[5] = imu.linear_acceleration.y
+#     imudata[6] = imu.linear_acceleration.z
+#     imudata[7] = imu.angular_velocity.x
+#     imudata[8] = imu.angular_velocity.y
+#     imudata[9] = imu.angular_velocity.z
+#     dataslice = np.append(data, np.copy((Cmove, Cturn)))
+#     dataslice = np.append(dataslice, imudata)
+#     dataslice = np.append(dataslice, np.copy((now.secs, now.nsecs)))
+#     dataarray = np.vstack([dataarray, dataslice])
+#     return Lastseq
 with open('data.csv', 'w') as f:
+    #add column head names
+    f.write('x , y , yaw, orientation.x, orientation.y, orientation.z, orientation.w, angular_velocity.x, angular_velocity.y, angular_velocity.z, linear_acceleration.x, linear_acceleration.y, linear_acceleration.z\n')
     pass
+
+
 rospy.init_node('my_square')
 subodom = rospy.Subscriber('/odom', Odometry, get_odom, queue_size=1)    # nav_msgs/Odometry
 cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+sub_imu = rospy.Subscriber('/imu', Imu, imu_cb)         # sensor_msgs/Imu
 r = rospy.Rate(30)
 wait = rospy.Rate(3)
 move_cmd = Twist()
