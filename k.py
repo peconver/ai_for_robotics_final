@@ -9,6 +9,17 @@ ser = serial.Serial('/dev/ttyACM0', 115200, timeout=0)
 # connect another serial port
 ser2 = serial.Serial('/dev/ttyACM1', 115200, timeout=0)
 
+# start serial
+def start_serial():
+    ser.write(b'\r\r')
+    time.sleep(1)
+    ser.flushInput()
+
+# read ser ser2 msg
+def read_msg(msg):
+    
+
+
 
 
 
