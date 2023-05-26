@@ -146,4 +146,4 @@ if plot_dataset_with_error == True:
 dataset = np.concatenate((dataset_with_error, dataset_without_error), axis = 0)
 # Print the size (shape) of dataset
 print("Size of dataset:", dataset.shape)
-np.savetxt('dataset.csv', dataset, delimiter=',')
+np.savetxt('dataset.csv', dataset, delimiter=',')gi
